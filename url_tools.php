@@ -68,10 +68,10 @@ function url_abs($rel_url, $base_url)
 function url_replace($s, $func = NULL)
 {
 	// + полное доменное имя не может быть длиннее 255 символов
-	$r = '#(?<=[^\w\.\-])((https?:)?//)?[a-z\d\-]{1,63}(\.[a-z\d\-]{1,63}){0,5}\.(?!aac|ai|aif|apk|arj|asp|aspx|atom|avi|bak|bat|bin|bmp|cab|cda|cer|cfg|cfm|cgi|class|cpl|cpp|cs|css|csv|cur|dat|db|dbf|deb|dll|dmg|dmp|doc|drv|ejs|eot|eps|exe|flv|fnt|fon|gif|gz|htm|icns|ico|img|ini|iso|jad|jar|java|jpeg|jpg|js|json|jsp|key|lnk|log|mdb|mid|midi|mkv|mov|mpa|mpeg|mpg|msi|odf|odp|ods|odt|ogg|otf|part|pdf|php|pkg|pls|png|pps|ppt|pptx|psd|py|rar|rm|rpm|rss|rtf|sav|sql|svg|svgz|swf|swift|sys|tar|tex|tgz|tif|tmp|toast|ttf|txt|vb|vcd|vob|wav|wbmp|webm|webp|wks|wma|wmv|woff|wpd|wpl|wps|wsf|xhtml|xlr|xls|xml|zip)(xn--[a-z\d\-]{1,63}|[a-z]{2,11})(:\d+)?(?=[^\w\.\-]|$)[^\[\]<>"\']*?(?=$|[^a-z\-\d/\.])#ui';
+	$r = '#(?<=[^\w\.\-]|^)((https?:)?//)?[a-z\d\-]{1,63}(\.[a-z\d\-]{1,63}){0,5}\.(?!aac|ai|aif|apk|arj|asp|aspx|atom|avi|bak|bat|bin|bmp|cab|cda|cer|cfg|cfm|cgi|class|cpl|cpp|cs|css|csv|cur|dat|db|dbf|deb|dll|dmg|dmp|doc|drv|ejs|eot|eps|exe|flv|fnt|fon|gif|gz|htm|icns|ico|img|ini|iso|jad|jar|java|jpeg|jpg|js|json|jsp|key|lnk|log|mdb|mid|midi|mkv|mov|mpa|mpeg|mpg|msi|odf|odp|ods|odt|ogg|otf|part|pdf|php|pkg|pls|png|pps|ppt|pptx|psd|py|rar|rm|rpm|rss|rtf|sav|sql|svg|svgz|swf|swift|sys|tar|tex|tgz|tif|tmp|toast|ttf|txt|vb|vcd|vob|wav|wbmp|webm|webp|wks|wma|wmv|woff|wpd|wpl|wps|wsf|xhtml|xlr|xls|xml|zip)(xn--[a-z\d\-]{1,63}|[a-z]{2,11})(:\d+)?(?=[^\w\.\-]|$)[^\[\]<>"\']*?(?=$|[^a-z\-\d/\.])#ui';
 	if (!preg_match_all($r, $s, $m, PREG_OFFSET_CAPTURE)) return $s;
 	$m = $m[0];
-	if (!$func) $func = function(){return '';};
+	if (!$func) $func = function(){return;};
 	foreach ($m as &$mm)
 	{
 		$x = max(0, $mm[1]-4000);
@@ -79,15 +79,16 @@ function url_replace($s, $func = NULL)
 		$q2 = substr($s, $mm[1]+strlen($mm[0]), 4000);
 		$host = parse_url('http://'.preg_replace(['#^https?:#i', '#^//#'], '', $mm[0]), PHP_URL_HOST);
 		if (strlen($host)>255 || 
-			preg_match('#(["\']|(\s(href|src|srcset|action|data|poster|cite)=|\burl\()["\']?)[^"\'<>\(\)]*$#i', $q) ||
+			preg_match('#(=["\']|(\s(href|src|srcset|action|data|poster|cite)=|\burl\()["\']?)[^"\'<>\(\)\n]*$#i', $q) ||
 			(preg_match('#>\s*$#', $q) && preg_match('#^\s*</#', $q2))
 		) continue;
 		$mm['func'] = $func($mm[0]);
 	}
+	unset($mm);
 	$prev = 0; $res = '';
 	foreach ($m as &$mm)
 	{
-		$res .= substr($s, $prev, $mm[1]-$prev).(isset($mm['func'])?$mm['func']:$mm[0]);
+		$res .= substr($s, $prev, $mm[1]-$prev).(array_key_exists('func', $mm)?$mm['func']:$mm[0]);
 		$prev = $mm[1]+strlen($mm[0]);
 	}
 	$res .= substr($s, $prev);
@@ -99,7 +100,7 @@ function url_replace($s, $func = NULL)
 	Возвращает массив вида:
 		['исходный код страницы', 'содержимое Content-Type']
 */
-function cu_download($url, $allow_404 = true, $timeout = 10)
+function cu_download($url, $allow_404 = true, $timeout = 20)
 {
 	$url = preg_replace('/#.*/', '', $url);
 	if ($ch = curl_init())
@@ -111,7 +112,7 @@ function cu_download($url, $allow_404 = true, $timeout = 10)
 		@curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $timeout);
 		curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
-		curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 5.1; rv:59.0) Gecko/20100101 Firefox/59.0');
+		curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:61.0) Gecko/20100101 Firefox/61.0');
 		curl_setopt($ch, CURLOPT_HEADER, 1);
 		curl_setopt($ch, CURLOPT_HTTPHEADER, array('Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8', 'Accept-Language: en-us,en;q=0.5'));
 		curl_setopt($ch, CURLOPT_ENCODING, 'gzip, deflate');
